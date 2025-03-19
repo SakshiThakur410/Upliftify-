@@ -1,6 +1,7 @@
 import streamlit as st
 import google.generativeai as genai
-from fpdf import FPDF
+from PIL import Image
+from io import BytesIO
 
 # ✅ Fetch API Key Securely from Streamlit Secrets
 if "API_KEYS" not in st.secrets or "Gen_API" not in st.secrets["API_KEYS"]:
@@ -12,63 +13,70 @@ API_KEY = st.secrets["API_KEYS"]["Gen_API"]
 # ✅ Configure Gemini API
 genai.configure(api_key=API_KEY)
 
-# 🎭 Personality Options
-personalities = {
-    "Friend": "A cheerful and supportive best friend!",
-    "Loving Partner": "A romantic and caring lover!",
-    "Sibling": "A fun and teasing sibling!",
-    "Parent": "A wise and nurturing parent!",
-    "Therapist": "A professional and understanding therapist!"
-}
-
-# 🎭 Mood Options
-moods = ["Happy", "Sad", "Romantic", "Excited", "Relaxed", "Motivated", "Stressed", "Lonely"]
-
-def get_advice(mood, personality):
-    model = genai.GenerativeModel("gemini-2.0-flash")
+def get_mood_response(mood, personality):
+    model = genai.GenerativeModel("gemini-2-vision")  # Upgraded to 2.0 Flash Vision
     prompt = (
-        f"You are acting as {personalities[personality]} speaking to someone feeling {mood}. "
-        "Provide thoughtful advice with warmth and care."
+        f"Act as a {personality} and give comforting advice for someone feeling {mood}. "
+        "Also generate a soothing image representing this mood."
     )
     try:
         response = model.generate_content(prompt)
-        return response.text if response else "No advice available."
+        text_response = response.text if response.text else "No advice available."
+        image_response = response.image if hasattr(response, 'image') else None
+        return text_response, image_response
     except Exception as e:
         st.error(f"Error contacting Gemini API: {e}")
-        return None
+        return None, None
 
-def generate_image(mood):
-    model = genai.GenerativeModel("gemini-2.0-flash")
-    prompt = f"Generate an uplifting AI image representing the emotion: {mood}."
-    try:
-        response = model.generate_content([prompt])
-        return response.image if response else None
-    except Exception as e:
-        st.warning("Couldn't generate an image, but here's some advice instead!")
-        return None
+# ✅ UI Styling
+st.markdown(
+    """
+    <style>
+    body {background-color: #f5f7fa;}
+    .stButton>button {background-color: #4CAF50; color: white; border-radius: 10px; font-size: 16px;}
+    .stSelectbox, .stTextInput {border-radius: 8px; padding: 5px;}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
-# ✅ Streamlit UI
-def main():
-    st.title("🌟 Upliftify: Personalized Mood Advice")
-    st.write("Choose your mood and get advice from a special personality!")
+# ✅ Mood and Personality Selection
+st.title("🌟 Upliftify – Your Personal Mood Booster")
+st.subheader("Choose your mood and get advice from a special personality!")
 
-    # 🎭 Mood Selection
-    mood = st.selectbox("How are you feeling?", moods)
-    personality = st.selectbox("Who would you like advice from?", list(personalities.keys()))
+moods = ["Happy", "Sad", "Romantic", "Anxious", "Excited", "Lonely", "Motivated", "Sexy", "Stressed"]
+personalities = {
+    "Friend": "Hey! I’m here for you. What’s on your mind?",
+    "Parent": "Sweetheart, tell me what’s bothering you.",
+    "Partner": "Hey love, let’s make you feel better. 💕",
+    "Sibling": "Yo, you seem off. Want to talk?",
+    "Therapist": "I’m here to support your mental well-being. What’s on your mind?",
+}
 
-    if st.button("Get Advice!"):
-        advice = get_advice(mood, personality)
-        ai_image = generate_image(mood)
-        
-        if ai_image:
-            st.image(ai_image, caption=f"A special image to match your mood: {mood}")
-        
-        if advice:
-            st.markdown(f"### 🤗 {personality} says:")
-            st.success(advice)
-        else:
-            st.warning("No advice available. Try again!")
+selected_mood = st.selectbox("🌈 How are you feeling?", moods)
+personality_choice = st.selectbox("👤 Choose a personality:", list(personalities.keys()))
+st.write(f"**{personality_choice} says:** {personalities[personality_choice]}")
 
-if __name__ == "__main__":
-    main()
+if st.button("Get Advice & Image"):
+    mood_response, mood_image = get_mood_response(selected_mood, personality_choice)
+    
+    if mood_response:
+        st.subheader(f"{personality_choice} says:")
+        st.write(mood_response)
+    
+    if mood_image:
+        st.image(mood_image, caption=f"Aesthetic image for '{selected_mood}'", use_column_width=True)
 
+# ✅ Conversational Chat UI
+st.subheader("💬 Start a Conversation")
+if "conversation" not in st.session_state:
+    st.session_state["conversation"] = []
+
+user_input = st.text_input("Your Message:")
+if user_input:
+    st.session_state["conversation"].append(("You", user_input))
+    ai_response = get_mood_response(selected_mood, personality_choice)[0]  # Get only text
+    st.session_state["conversation"].append((personality_choice, ai_response))
+
+for speaker, message in st.session_state["conversation"]:
+    st.chat_message(f"{speaker}: {message}")
