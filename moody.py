@@ -19,8 +19,21 @@ def call_gemini_api(prompt: str) -> dict:
     model = genai.GenerativeModel("gemini-1.5-flash")  # Using a fast model
     try:
         response = model.generate_content(prompt)
-        response_text = response.text if response else "{}"
-        return json.loads(response_text)
+        if response and hasattr(response, "text"):
+            response_text = response.text.strip()
+            
+            # Debugging: Print response to Streamlit (remove in production)
+            st.write("Gemini API Response:", response_text)
+            
+            # Try to load as JSON
+            try:
+                return json.loads(response_text)
+            except json.JSONDecodeError:
+                st.error("Gemini API response is not in valid JSON format.")
+                return {"suggestion": response_text}  # Return raw text instead
+        else:
+            st.error("Empty response from Gemini API.")
+            return {}
     except Exception as e:
         st.error(f"Error contacting Gemini API: {e}")
         return {}
