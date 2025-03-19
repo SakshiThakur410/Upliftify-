@@ -11,17 +11,17 @@ API_KEY = st.secrets["API_KEYS"]["Gen_API"]
 # ✅ Configure Gemini API
 genai.configure(api_key=API_KEY)
 
-# ✅ Function for realistic, context-aware chat
-def get_chat_response(personality, user_input, chat_history):
+# ✅ Function to generate a personalized response based on mood and personality
+def get_chat_response(personality, user_input, current_mood, desired_mood, chat_history):
     model = genai.GenerativeModel("gemini-1.5-flash")
 
-    # If the input is simple (like "hi"), return a short response
+    # Simple responses for casual greetings
     casual_responses = {
-        "hi": "Hey! 😊 How's your day going?",
-        "hello": "Hello! 👋 What's up?",
+        "hi": "Hey! 😊 How’s your day going?",
+        "hello": "Hello! 👋 What’s up?",
         "hey": "Hey there! How can I help?",
-        "how are you": "I'm doing great! Thanks for asking. How about you?",
-        "what's up": "Not much, just here to chat with you! What’s on your mind?",
+        "how are you": "I’m doing great! Thanks for asking. How about you?",
+        "what’s up": "Not much, just here to chat with you! What’s on your mind?",
     }
 
     lower_input = user_input.strip().lower()
@@ -33,10 +33,12 @@ def get_chat_response(personality, user_input, chat_history):
     conversation_history = "\n".join(f"{role}: {text}" for role, text in chat_history)
 
     prompt = f"""
-    You are acting as {personality}. Have a **natural, engaging, and human-like** conversation.
-    - **Short, casual replies** for greetings like "hi", "hello".
-    - **Deeper responses** when user asks about emotional topics.
-    - **Do NOT be overly formal or robotic**. Keep it **friendly and real**.
+    You are acting as {personality}. Your job is to provide **real, comforting, and engaging** conversation.
+    
+    The user is currently feeling **{current_mood}** and wants to feel **{desired_mood}**.
+    - **For casual greetings, keep it short and friendly.**
+    - **For emotional topics, provide deep, thoughtful responses.**
+    - **Keep it natural, empathetic, and human-like.**
 
     Previous messages:
     {conversation_history}
@@ -54,7 +56,9 @@ def get_chat_response(personality, user_input, chat_history):
 
 # ✅ Streamlit UI
 def main():
-    st.set_page_config(page_title="Upliftify – Real Human-Like AI Chat", page_icon="💖", layout="centered")
+    st.set_page_config(page_title="Upliftify – Personalized AI Companion", page_icon="💖", layout="centered")
+
+    st.title("💖 Upliftify – Chat & Personalized Advice")
 
     # 🎭 Personality Selection
     personality_options = {
@@ -64,8 +68,15 @@ def main():
         "Fun Sibling": "a playful yet caring and supportive sibling",
         "Therapist": "a professional therapist offering deep emotional guidance"
     }
-    
     selected_personality = st.selectbox("💬 Choose a Personality", list(personality_options.keys()))
+
+    # 😌 Mood Selection
+    mood_options = [
+        "Happy", "Excited", "Motivated", "Relaxed", "Romantic", "Sad", 
+        "Lonely", "Stressed", "Anxious", "Confused", "Angry"
+    ]
+    current_mood = st.selectbox("😔 How are you feeling right now?", mood_options)
+    desired_mood = st.selectbox("😊 How do you want to feel?", mood_options)
 
     # ✅ Chat Feature
     st.markdown("## 🗨️ Chat with Your Chosen Personality")
@@ -73,7 +84,7 @@ def main():
     # Initialize chat history
     if "chat_history" not in st.session_state:
         st.session_state.chat_history = []
-    
+
     # Display previous messages
     for msg in st.session_state.chat_history:
         role, text = msg
@@ -86,7 +97,9 @@ def main():
     if st.button("Send"):
         if user_input:
             st.session_state.chat_history.append(("You", user_input))
-            ai_response = get_chat_response(personality_options[selected_personality], user_input, st.session_state.chat_history)
+            ai_response = get_chat_response(
+                personality_options[selected_personality], user_input, current_mood, desired_mood, st.session_state.chat_history
+            )
             
             if ai_response:
                 st.session_state.chat_history.append((selected_personality, ai_response))
