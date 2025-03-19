@@ -1,7 +1,6 @@
 import streamlit as st
 import google.generativeai as genai
-from PIL import Image
-from io import BytesIO
+from fpdf import FPDF
 
 # ✅ Fetch API Key Securely from Streamlit Secrets
 if "API_KEYS" not in st.secrets or "Gen_API" not in st.secrets["API_KEYS"]:
@@ -13,70 +12,100 @@ API_KEY = st.secrets["API_KEYS"]["Gen_API"]
 # ✅ Configure Gemini API
 genai.configure(api_key=API_KEY)
 
-def get_mood_response(mood, personality):
-    model = genai.GenerativeModel("gemini-2-vision")  # Upgraded to 2.0 Flash Vision
+# ✅ Function to call Gemini API and get suggestions
+def get_mood_suggestions(mood, desired_feeling, personality):
+    model = genai.GenerativeModel("gemini-2-vision")  # Using latest vision model
+    
     prompt = (
-        f"Act as a {personality} and give comforting advice for someone feeling {mood}. "
-        "Also generate a soothing image representing this mood."
+        f"You are acting as a {personality}. The user is currently feeling {mood} and wants to feel {desired_feeling}. "
+        f"Give personalized advice, comforting words, and fun activity suggestions in an engaging tone."
     )
+
     try:
         response = model.generate_content(prompt)
-        text_response = response.text if response.text else "No advice available."
-        image_response = response.image if hasattr(response, 'image') else None
-        return text_response, image_response
+        return response.text if response else "I couldn't generate a response. Try again!"
     except Exception as e:
         st.error(f"Error contacting Gemini API: {e}")
-        return None, None
+        return None
 
-# ✅ UI Styling
-st.markdown(
-    """
-    <style>
-    body {background-color: #f5f7fa;}
-    .stButton>button {background-color: #4CAF50; color: white; border-radius: 10px; font-size: 16px;}
-    .stSelectbox, .stTextInput {border-radius: 8px; padding: 5px;}
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# ✅ Mood and Personality Selection
-st.title("🌟 Upliftify – Your Personal Mood Booster")
-st.subheader("Choose your mood and get advice from a special personality!")
-
-moods = ["Happy", "Sad", "Romantic", "Anxious", "Excited", "Lonely", "Motivated", "Sexy", "Stressed"]
-personalities = {
-    "Friend": "Hey! I’m here for you. What’s on your mind?",
-    "Parent": "Sweetheart, tell me what’s bothering you.",
-    "Partner": "Hey love, let’s make you feel better. 💕",
-    "Sibling": "Yo, you seem off. Want to talk?",
-    "Therapist": "I’m here to support your mental well-being. What’s on your mind?",
-}
-
-selected_mood = st.selectbox("🌈 How are you feeling?", moods)
-personality_choice = st.selectbox("👤 Choose a personality:", list(personalities.keys()))
-st.write(f"**{personality_choice} says:** {personalities[personality_choice]}")
-
-if st.button("Get Advice & Image"):
-    mood_response, mood_image = get_mood_response(selected_mood, personality_choice)
+# ✅ Function to create a PDF of advice
+def generate_pdf(response_text):
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
     
-    if mood_response:
-        st.subheader(f"{personality_choice} says:")
-        st.write(mood_response)
+    pdf.set_font("Arial", style="B", size=16)
+    pdf.cell(200, 10, "Your Personalized Advice", ln=True, align="C")
     
-    if mood_image:
-        st.image(mood_image, caption=f"Aesthetic image for '{selected_mood}'", use_column_width=True)
+    pdf.set_font("Arial", size=12)
+    pdf.multi_cell(0, 10, response_text)
+    
+    pdf_path = "advice.pdf"
+    pdf.output(pdf_path)
+    return pdf_path
 
-# ✅ Conversational Chat UI
-st.subheader("💬 Start a Conversation")
-if "conversation" not in st.session_state:
-    st.session_state["conversation"] = []
+# ✅ Streamlit UI
+def main():
+    st.set_page_config(page_title="Moody Uplift | Feel Better Now", page_icon="😊", layout="wide")
+    
+    # 🌟 Beautiful UI
+    st.markdown(
+        """
+        <style>
+            body {
+                background-color: #f9f9f9;
+            }
+            .stTitle {
+                color: #ff4b4b;
+                font-size: 36px;
+                text-align: center;
+                font-weight: bold;
+            }
+            .stButton>button {
+                background-color: #ff4b4b !important;
+                color: white !important;
+                font-size: 18px;
+                border-radius: 10px;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
-user_input = st.text_input("Your Message:")
-if user_input:
-    st.session_state["conversation"].append(("You", user_input))
-    ai_response = get_mood_response(selected_mood, personality_choice)[0]  # Get only text
-    st.session_state["conversation"].append((personality_choice, ai_response))
+    st.markdown("<h1 class='stTitle'>🎭 Moody Uplift – Get Advice & Fun Activities</h1>", unsafe_allow_html=True)
+    st.write("💡 **Choose your mood, get advice, and talk to different personalities!**")
 
-for speaker, message in st.session_state["conversation"]:
-    st.chat_message(f"{speaker}: {message}")
+    # 🔥 Mood Selection
+    moods = ["Sad", "Happy", "Lonely", "Romantic", "Angry", "Stressed", "Anxious", "Bored", "Excited", "Confused"]
+    current_mood = st.selectbox("How are you feeling right now?", moods)
+
+    # 🌈 Desired Emotion Selection
+    desired_feelings = ["Loved", "Motivated", "Relaxed", "Confident", "Adventurous", "Playful", "Calm", "Inspired"]
+    desired_feeling = st.selectbox("How do you want to feel?", desired_feelings)
+
+    # 🧑‍🤝‍🧑 Personality Selector
+    personalities = ["Caring Parent", "Loving Partner", "Best Friend", "Fun Sibling", "Therapist"]
+    selected_personality = st.selectbox("Who do you want advice from?", personalities)
+
+    if st.button("Generate Advice & Fun Activities 🎉"):
+        st.write("### 📩 Your Input:")
+        st.write(f"**Current Mood:** {current_mood}")
+        st.write(f"**Desired Feeling:** {desired_feeling}")
+        st.write(f"**Selected Personality:** {selected_personality}")
+
+        # ✅ Get Response from Gemini 2.0
+        response = get_mood_suggestions(current_mood, desired_feeling, selected_personality)
+
+        if response:
+            st.write("### 🌟 Personalized Advice:")
+            st.write(response)
+            
+            # ✅ Generate PDF
+            pdf_path = generate_pdf(response)
+            with open(pdf_path, "rb") as file:
+                st.download_button("📥 Download Advice as PDF", file, file_name="mood_advice.pdf", mime="application/pdf")
+        else:
+            st.write("⚠️ No advice found. Please try again.")
+
+if __name__ == "__main__":
+    main()
