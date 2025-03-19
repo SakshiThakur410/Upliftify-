@@ -119,7 +119,7 @@ def main():
             
             if ai_response:
                 st.session_state.chat_history.append((selected_personality, ai_response))
-                st.experimental_rerun()
+                st.rerun()  # ✅ FIXED: Using st.rerun() instead of experimental_rerun()
 
 if __name__ == "__main__":
     main()
