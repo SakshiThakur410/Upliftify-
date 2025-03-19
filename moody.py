@@ -1,30 +1,29 @@
 import streamlit as st
-import requests
+import google.generativeai as genai
 import json
 
-# Load Gemini API keys from Streamlit secrets
-GEMINI_API_KEY = st.secrets["GEMINI_API_KEY"]
-GEMINI_API_URL = st.secrets["GEMINI_API_URL"]
+# ✅ Fetch API Key Securely from Streamlit Secrets
+if "API_KEYS" not in st.secrets or "Gen_API" not in st.secrets["API_KEYS"]:
+    st.error("API Key is missing! Please set it in Streamlit secrets.")
+    st.stop()
 
-def call_gemini_api(prompt: str, max_tokens: int = 150) -> str:
+API_KEY = st.secrets["API_KEYS"]["Gen_API"]
+
+# ✅ Configure Gemini API
+genai.configure(api_key=API_KEY)
+
+def call_gemini_api(prompt: str) -> dict:
     """
-    Call the Gemini API with the provided prompt and return the response.
+    Call the Gemini API with the provided prompt and return the response as a dictionary.
     """
-    headers = {
-        "Authorization": f"Bearer {GEMINI_API_KEY}",
-        "Content-Type": "application/json"
-    }
-    data = {
-        "prompt": prompt,
-        "max_tokens": max_tokens
-    }
-    response = requests.post(GEMINI_API_URL, json=data, headers=headers)
-    if response.status_code == 200:
-        result = response.json()
-        return result.get("response", "")
-    else:
-        st.error("Error calling Gemini API. Please check your API key and URL.")
-        return ""
+    model = genai.GenerativeModel("gemini-1.5-flash")  # Using a fast model
+    try:
+        response = model.generate_content(prompt)
+        response_text = response.text if response else "{}"
+        return json.loads(response_text)
+    except Exception as e:
+        st.error(f"Error contacting Gemini API: {e}")
+        return {}
 
 def generate_responses(current_feeling: str, desired_feeling: str, current_mood: str) -> dict:
     """
@@ -43,13 +42,7 @@ def generate_responses(current_feeling: str, desired_feeling: str, current_mood:
     
     Format your response as a JSON object with keys: "suggestion", "motivational_message", and "joke".
     """
-    response_json = call_gemini_api(prompt)
-    try:
-        response_data = json.loads(response_json)
-    except Exception as e:
-        st.error("Error parsing Gemini API response. Please try again.")
-        response_data = {}
-    return response_data
+    return call_gemini_api(prompt)
 
 def main():
     st.title("Mood Uplifter App with Gemini API")
