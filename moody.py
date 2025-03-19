@@ -11,25 +11,27 @@ API_KEY = st.secrets["API_KEYS"]["Gen_API"]
 # ✅ Configure Gemini API
 genai.configure(api_key=API_KEY)
 
-# ✅ Define mood options
-MOOD_OPTIONS = [
-    "Happy", "Sad", "Anxious", "Stressed", "Excited", "Tired", "Angry", "Bored", "Lonely", "Romantic", "Motivated"
-]
+# 🎭 Mood & Emoji Mapping
+MOOD_OPTIONS = {
+    "Happy": "😊", "Sad": "😢", "Anxious": "😰", "Stressed": "😖", "Excited": "🤩",
+    "Tired": "😴", "Angry": "😠", "Bored": "🥱", "Lonely": "😞", "Romantic": "💖", "Motivated": "🔥"
+}
 
-DESIRED_FEELINGS = [
-    "Relaxed", "Cheerful", "Confident", "Productive", "Loved", "Energetic", "Hopeful", "Inspired", "Excited"
-]
+DESIRED_FEELINGS = {
+    "Relaxed": "🌿", "Cheerful": "😃", "Confident": "💪", "Productive": "📈", "Loved": "❤️",
+    "Energetic": "⚡", "Hopeful": "🌟", "Inspired": "🎨", "Excited": "🎉"
+}
 
-# ✅ Function to call Gemini API and get mood suggestions
+# ✅ Function to call Gemini API for mood suggestions
 def get_mood_suggestions(current_feeling, desired_feeling):
     model = genai.GenerativeModel("gemini-1.5-flash")  # Using a fast model
     prompt = f"""
     The user currently feels {current_feeling} and wants to feel {desired_feeling}.
     
     Provide:
-    1. A suggestion to transition from {current_feeling} to {desired_feeling}.
+    1. A thoughtful suggestion to transition from {current_feeling} to {desired_feeling}.
     2. A fun activity they can do to improve their mood.
-    3. A short motivational message.
+    3. A short, motivational message in an inspiring tone.
     """
     
     try:
@@ -39,22 +41,45 @@ def get_mood_suggestions(current_feeling, desired_feeling):
         st.error(f"Error contacting Gemini API: {e}")
         return None
 
-# ✅ Streamlit UI
+# ✅ Streamlit UI - Enhanced
 def main():
-    st.title("Mood Uplifter App 🎭✨")
-    st.write("Select how you're feeling and how you want to feel, and we'll suggest something uplifting!")
+    st.set_page_config(page_title="Mood Uplifter", page_icon="🎭", layout="centered")
+    
+    # 🌟 Custom Styles
+    st.markdown("""
+        <style>
+            .main {background-color: #f8f9fa;}
+            .title {text-align: center; font-size: 2.2em; font-weight: bold; color: #4CAF50;}
+            .subtext {text-align: center; font-size: 1.2em; color: #555;}
+            .suggestion-box {background-color: #ffffff; padding: 15px; border-radius: 10px; 
+                            box-shadow: 0px 0px 15px rgba(0,0,0,0.1);}
+            .emoji {font-size: 1.8em;}
+        </style>
+    """, unsafe_allow_html=True)
+    
+    st.markdown('<p class="title">🎭 Mood Uplifter App</p>', unsafe_allow_html=True)
+    st.markdown('<p class="subtext">Select how you feel and let us uplift your mood! 🌟</p>', unsafe_allow_html=True)
+    
+    # 🌟 Mood Selection
+    col1, col2 = st.columns(2)
+    with col1:
+        current_feeling = st.selectbox("How are you feeling right now?", options=MOOD_OPTIONS.keys())
+    with col2:
+        desired_feeling = st.selectbox("How would you like to feel?", options=DESIRED_FEELINGS.keys())
+    
+    # 🌈 Display Mood with Emojis
+    st.markdown(f"<p class='emoji'>{MOOD_OPTIONS[current_feeling]} → {DESIRED_FEELINGS[desired_feeling]}</p>", unsafe_allow_html=True)
 
-    # Dropdown inputs
-    current_feeling = st.selectbox("How are you feeling right now?", options=MOOD_OPTIONS)
-    desired_feeling = st.selectbox("How would you like to feel?", options=DESIRED_FEELINGS)
-
+    # 🎁 Button to Get Suggestion
     if st.button("Get My Suggestion 🎁"):
-        with st.spinner("Thinking of something special for you... 🎭✨"):
+        with st.spinner("Finding something special for you... 🎭✨"):
             response = get_mood_suggestions(current_feeling, desired_feeling)
             
             if response:
-                st.subheader("🌟 Here's what you can do:")
+                st.markdown('<div class="suggestion-box">', unsafe_allow_html=True)
+                st.subheader(f"🌟 Your Personalized Suggestion:")
                 st.write(response)
+                st.markdown('</div>', unsafe_allow_html=True)
             else:
                 st.error("Oops! Couldn't fetch a response. Try again!")
 
