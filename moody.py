@@ -11,13 +11,15 @@ API_KEY = st.secrets["API_KEYS"]["Gen_API"]
 # ✅ Configure Gemini API
 genai.configure(api_key=API_KEY)
 
-# ✅ Function to get mood-based suggestions from Gemini
+# ✅ Function to get deep emotional responses
 def get_mood_suggestions(mood, desired_feeling, personality):
-    model = genai.GenerativeModel("gemini-1.5-flash")  # Fast text-based model
+    model = genai.GenerativeModel("gemini-1.5-flash")
     
     prompt = f"""
     You are acting as {personality}. The user is currently feeling {mood} and wants to feel {desired_feeling}.
-    Provide a warm, engaging, and helpful response. Keep the tone natural and conversational.
+    Provide a heartfelt, deeply engaging, and **human-like** response.
+    Speak as if you are **really talking to a loved one**, showing care, empathy, and warmth.
+    Use a **natural tone** that sounds emotional, understanding, and not robotic.
     """
     
     try:
@@ -27,13 +29,17 @@ def get_mood_suggestions(mood, desired_feeling, personality):
         st.error(f"Error contacting Gemini API: {e}")
         return None
 
-# ✅ Function to handle live chat
+# ✅ Function for emotional, human-like chat
 def get_chat_response(personality, user_input, chat_history):
     model = genai.GenerativeModel("gemini-1.5-flash")
     
     conversation_history = "\n".join(f"{role}: {text}" for role, text in chat_history)
+    
     prompt = f"""
-    You are acting as {personality}. Have a supportive and engaging conversation with the user.
+    You are acting as {personality}. Have a deeply **emotional, caring, and warm** conversation.
+    The goal is to **sound like a real human, not an AI.**
+    Your responses should be **genuine, expressive, and comforting** based on the user’s words.
+
     Previous messages:
     {conversation_history}
 
@@ -50,7 +56,7 @@ def get_chat_response(personality, user_input, chat_history):
 
 # ✅ Streamlit UI
 def main():
-    st.set_page_config(page_title="Upliftify – Mood Booster & Chat", page_icon="💖", layout="centered")
+    st.set_page_config(page_title="Upliftify – Emotional AI Chat", page_icon="💖", layout="centered")
 
     # 🎨 Dark Mode Styling
     dark_theme_style = """
@@ -65,16 +71,16 @@ def main():
     st.markdown(dark_theme_style, unsafe_allow_html=True)
     
     # 🏠 App Title
-    st.markdown("<h1 style='text-align: center; color: #ff4081;'>💖 Upliftify – Mood Booster & Chat 💖</h1>", unsafe_allow_html=True)
-    st.markdown("<h3 style='text-align: center; color: #B39DDB;'>Choose your mood, get advice, or have a conversation with a special personality!</h3>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #ff4081;'>💖 Upliftify – Deep Emotional AI Chat 💖</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: #B39DDB;'>Choose your mood, get heartfelt advice, or chat deeply with an AI who truly understands.</h3>", unsafe_allow_html=True)
     
     # 🎭 Personality Selection
     personality_options = {
-        "Friendly Buddy": "a caring and cheerful friend",
-        "Loving Partner": "a romantic and affectionate partner",
-        "Wise Parent": "a thoughtful and understanding parent",
-        "Fun Sibling": "a playful and supportive sibling",
-        "Therapist": "a professional therapist offering mindful guidance"
+        "Friendly Buddy": "a warm, caring, and uplifting friend",
+        "Loving Partner": "a deeply affectionate and understanding partner",
+        "Wise Parent": "a comforting, wise, and patient parent",
+        "Fun Sibling": "a playful yet caring and supportive sibling",
+        "Therapist": "a professional therapist offering deep emotional guidance"
     }
     
     selected_personality = st.selectbox("💬 Choose a Personality", list(personality_options.keys()))
@@ -89,7 +95,7 @@ def main():
     
     # ✅ Advice Section
     if st.button("✨ Get Personalized Advice"):
-        st.markdown("### 💬 Personalized Advice")
+        st.markdown("### 💬 Heartfelt Advice")
         personality_role = personality_options[selected_personality]
         response = get_mood_suggestions(user_mood, target_feeling, personality_role)
         
