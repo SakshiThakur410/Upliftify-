@@ -17,8 +17,7 @@ def get_mood_suggestions(mood, desired_feeling, personality):
     
     prompt = f"""
     You are acting as {personality}. The user is currently feeling {mood} and wants to feel {desired_feeling}.
-    Provide a warm, engaging, and helpful response. Give practical advice and fun activity suggestions.
-    Keep the tone natural and conversational.
+    Provide a warm, engaging, and helpful response. Keep the tone natural and conversational.
     """
     
     try:
@@ -32,7 +31,7 @@ def get_mood_suggestions(mood, desired_feeling, personality):
 def get_chat_response(personality, user_input, chat_history):
     model = genai.GenerativeModel("gemini-1.5-flash")
     
-    conversation_history = "\n".join(chat_history)
+    conversation_history = "\n".join(f"{role}: {text}" for role, text in chat_history)
     prompt = f"""
     You are acting as {personality}. Have a supportive and engaging conversation with the user.
     Previous messages:
